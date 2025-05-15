@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the high-level architecture of the secure AWS infrastructure for financial services applications. The architecture follows a multi-account strategy with defense-in-depth security controls.
+This document outlines the high-level architecture of the secure AWS infrastructure for financial services applications. The architecture follows a multi-account strategy with defense-in-depth security controls and implements regulatory compliance requirements for financial services.
 
 ## Multi-Account Structure
 
@@ -61,6 +61,68 @@ Each environment (dev, test, prod) follows a secure network design:
 └────────────────────────────────────────────────────────────────┘
 ```
 
+## Terraform Implementation
+
+The infrastructure is implemented using Terraform with the following modular structure:
+
+### Module Organization
+
+- **Networking Module**: Sets up VPC, subnets, route tables, NAT gateways, and network ACLs
+- **Security Module**: Implements security groups, IAM roles/policies, and KMS keys
+- **Database Module**: Creates RDS instances with encryption, monitoring, and high availability
+- **Compute Module**: Deploys EC2 instances, auto-scaling groups, and load balancers
+- **Monitoring Module**: Sets up CloudWatch dashboards, alarms, and integrations with Security Hub
+
+### Environment-Specific Configurations
+
+Each environment (dev, staging, prod) has its own configuration which calls these modules with specific parameters:
+
+```
+terraform/
+├── environments/
+│   ├── dev/
+│   │   ├── main.tf          # Calls modules with dev-specific parameters
+│   │   ├── variables.tf     # Environment-specific variables
+│   │   └── outputs.tf       # Environment-specific outputs
+│   ├── staging/
+│   └── prod/                # Higher resource allocations and stricter security
+└── modules/
+    ├── networking/          # VPC, subnets, routing
+    ├── security/            # IAM, Security Groups, GuardDuty
+    ├── compute/             # EC2, ECS, Lambda
+    ├── database/            # RDS, DynamoDB
+    └── monitoring/          # CloudWatch, AWS Config
+```
+
+### Security Features Implemented in Terraform
+
+1. **Network Level**:
+   - Defense-in-depth with three subnet tiers (public, private, restricted)
+   - Network ACLs for subnet-level security
+   - Security groups for instance-level security
+   - VPC Flow Logs for network traffic monitoring
+
+2. **Compute Level**:
+   - Hardened AMIs with minimal attack surface
+   - Instance metadata service v2 (IMDSv2) enforcement
+   - User data scripts with security monitoring setup
+   - Systems Manager Session Manager for secure shell access without SSH ports
+
+3. **Database Level**:
+   - Multi-AZ deployments for high availability
+   - Automated backups and snapshots
+   - Encryption at rest with KMS keys
+   - Performance Insights for monitoring
+   - Enhanced monitoring for detailed metrics
+
+4. **Monitoring & Logging**:
+   - CloudTrail for API activity tracking
+   - CloudWatch Logs for centralized logging
+   - AWS Config for compliance monitoring
+   - GuardDuty for threat detection
+   - Security Hub for comprehensive security view
+   - Custom metric filters and alarms for security events
+
 ## Security Controls
 
 The infrastructure implements several layers of security controls:
@@ -70,6 +132,34 @@ The infrastructure implements several layers of security controls:
 - **Data Protection**: Encryption at rest for all data stores, KMS for key management
 - **Logging & Monitoring**: Centralized logging, CloudTrail, CloudWatch, and GuardDuty
 - **Compliance**: AWS Config rules for continuous compliance monitoring
+
+## Regulatory Compliance
+
+The infrastructure is designed to meet the requirements of key financial regulations:
+
+### PCI-DSS Compliance
+
+- Network segmentation with restricted access controls
+- Encryption of cardholder data in transit and at rest
+- Strong access control measures with least privilege
+- Monitoring and logging of all access to network resources and cardholder data
+- Regular testing of security systems and processes
+
+### SOC 2 Compliance
+
+- Security, availability, and confidentiality controls
+- Monitoring of unusual or unauthorized activities
+- Logical and physical access controls
+- System operations monitoring
+- Change management processes
+
+### GDPR Compliance
+
+- Data encryption and pseudonymization
+- Regular security testing and assessments
+- Data backup and disaster recovery capabilities
+- Process for regularly testing security measures
+- Data minimization and purpose limitation
 
 ## Disaster Recovery
 
@@ -88,6 +178,26 @@ Infrastructure is deployed and managed using:
 - **CI/CD Pipeline**: Automated testing, validation, and deployment of infrastructure changes
 - **Security Scanning**: Static analysis of infrastructure code for security best practices
 
+## Deployment Process
+
+The infrastructure is deployed using the provided setup script with the following workflow:
+
+1. **Initialization**:
+   - State storage setup in S3 with DynamoDB locking
+   - Configuration validation and environment preparation
+
+2. **Deployment Sequence**:
+   - Base networking components 
+   - Security groups and IAM roles
+   - Database and storage resources
+   - Application and compute resources
+   - Monitoring and logging components
+
+3. **Validation**:
+   - Automated testing of deployed resources
+   - Security scanning of the environment
+   - Compliance checks against regulatory requirements
+
 ## Future Enhancements
 
 Planned enhancements to the architecture include:
@@ -95,5 +205,8 @@ Planned enhancements to the architecture include:
 - **Transit Gateway**: For simplified connectivity between VPCs and on-premises networks
 - **PrivateLink**: For secure access to AWS services without traversing the public internet
 - **WAF & Shield**: For enhanced protection of public-facing applications
-- **AWS Security Hub**: For unified view of security alerts and status
-EOF < /dev/null
+- **AWS Control Tower**: For streamlined multi-account management
+- **AWS Firewall Manager**: For centralized management of security rules
+- **AWS Network Firewall**: For enhanced network security filtering
+- **AWS IAM Identity Center**: For simplified access management
+- **AWS Secrets Manager**: For enhanced secrets rotation and management
