@@ -1,0 +1,50 @@
+# Terraform specific
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
+.terraform.lock.hcl
+terraform.tfvars
+*.auto.tfvars
+
+# AWS credentials
+.aws/
+aws.json
+credentials.json
+
+# Environment files
+.env
+.env.*
+.envrc
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Log files
+*.log
+logs/
+
+# Temp files
+*.tmp
+tmp/
+
+# Package directories
+node_modules/
+vendor/
+
+# Test artifacts
+.coverage
+coverage/
+htmlcov/
+.pytest_cache/
+
+# Local scripts that should not be committed
+local-*.sh
+EOF < /dev/null
