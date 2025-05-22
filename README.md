@@ -1,4 +1,6 @@
-# Secure Financial Infrastructure as Code with AWS & Terraform
+# Secure Financial Infrastructure as Code with AWS & Terraform (IN DEVELOPMENT)
+
+# IN DEVELOPMENT
 
 ## Project Overview
 
