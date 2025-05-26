@@ -1,0 +1,88 @@
+@startuml Network Architecture
+!define AWSPuml https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v14.0/dist
+!include AWSPuml/AWSCommon.puml
+!include AWSPuml/NetworkingContentDelivery/VirtualPrivateCloud.puml
+!include AWSPuml/NetworkingContentDelivery/VPCNATGateway.puml
+!include AWSPuml/NetworkingContentDelivery/VPCInternetGateway.puml
+!include AWSPuml/NetworkingContentDelivery/ElasticLoadBalancing.puml
+!include AWSPuml/SecurityIdentityCompliance/FirewallManager.puml
+
+' Define custom colors
+!define PUBLIC_SUBNET_COLOR #90EE90
+!define PRIVATE_SUBNET_COLOR #87CEEB
+!define RESTRICTED_SUBNET_COLOR #FFB6C1
+
+package "Production VPC (10.100.0.0/16)" {
+    
+    rectangle "Availability Zone A" as az_a {
+        rectangle "Public Subnet A\n10.100.1.0/24" as pub_a #PUBLIC_SUBNET_COLOR
+        rectangle "Private Subnet A\n10.100.11.0/24" as priv_a #PRIVATE_SUBNET_COLOR
+        rectangle "Restricted Subnet A\n10.100.21.0/24" as rest_a #RESTRICTED_SUBNET_COLOR
+        
+        VPCNATGateway(nat_a, "NAT Gateway A", "NAT")
+    }
+    
+    rectangle "Availability Zone B" as az_b {
+        rectangle "Public Subnet B\n10.100.2.0/24" as pub_b #PUBLIC_SUBNET_COLOR
+        rectangle "Private Subnet B\n10.100.12.0/24" as priv_b #PRIVATE_SUBNET_COLOR
+        rectangle "Restricted Subnet B\n10.100.22.0/24" as rest_b #RESTRICTED_SUBNET_COLOR
+        
+        VPCNATGateway(nat_b, "NAT Gateway B", "NAT")
+    }
+    
+    rectangle "Availability Zone C" as az_c {
+        rectangle "Public Subnet C\n10.100.3.0/24" as pub_c #PUBLIC_SUBNET_COLOR
+        rectangle "Private Subnet C\n10.100.13.0/24" as priv_c #PRIVATE_SUBNET_COLOR
+        rectangle "Restricted Subnet C\n10.100.23.0/24" as rest_c #RESTRICTED_SUBNET_COLOR
+        
+        VPCNATGateway(nat_c, "NAT Gateway C", "NAT")
+    }
+    
+    VPCInternetGateway(igw, "Internet Gateway", "IGW")
+    ElasticLoadBalancing(alb, "Application Load Balancer", "ALB")
+    
+    ' Connections
+    igw --> pub_a : "Route 0.0.0.0/0"
+    igw --> pub_b : "Route 0.0.0.0/0"
+    igw --> pub_c : "Route 0.0.0.0/0"
+    
+    pub_a --> nat_a
+    pub_b --> nat_b
+    pub_c --> nat_c
+    
+    nat_a --> priv_a : "Outbound Internet"
+    nat_b --> priv_b : "Outbound Internet"
+    nat_c --> priv_c : "Outbound Internet"
+    
+    priv_a --> rest_a : "Database Access"
+    priv_b --> rest_b : "Database Access"
+    priv_c --> rest_c : "Database Access"
+}
+
+note right of az_a
+    **Security Groups:**
+    - ALB: 443 from 0.0.0.0/0
+    - Web: 443 from ALB SG
+    - App: 8080 from Web SG
+    - DB: 3306 from App SG
+end note
+
+note bottom
+    **Network ACLs:**
+    - Public: Default (stateless rules)
+    - Private: Restricted inbound
+    - Restricted: Highly restricted, DB traffic only
+    
+    **VPC Flow Logs: Enabled**
+    **DNS Resolution: Enabled**
+    **DNS Hostnames: Enabled**
+end note
+
+legend right
+    |Color|Subnet Type|
+    |<#90EE90>|Public Subnets|
+    |<#87CEEB>|Private Subnets|
+    |<#FFB6C1>|Restricted Subnets|
+endlegend
+
+@enduml
