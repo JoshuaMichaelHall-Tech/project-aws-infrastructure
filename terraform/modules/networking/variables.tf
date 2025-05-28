@@ -18,4 +18,3 @@ variable "ha_nat_gateway" {
   type        = bool
   default     = false
 }
-EOF < /dev/null

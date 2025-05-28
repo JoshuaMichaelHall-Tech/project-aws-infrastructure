@@ -124,4 +124,3 @@ resource "aws_security_group" "restricted" {
 # - CloudTrail for audit logging
 # - AWS Secrets Manager for secrets management
 # - KMS for encryption
-EOF < /dev/null

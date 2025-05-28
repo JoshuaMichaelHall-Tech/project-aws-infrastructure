@@ -70,4 +70,3 @@ output "public_subnet_ids" {
   description = "IDs of the public subnets"
   value       = module.networking.public_subnet_ids
 }
-EOF < /dev/null
