@@ -155,4 +155,3 @@ resource "aws_route_table_association" "restricted" {
 }
 
 # VPC Endpoints for AWS services (S3, DynamoDB, etc.) would be added here
-EOF < /dev/null

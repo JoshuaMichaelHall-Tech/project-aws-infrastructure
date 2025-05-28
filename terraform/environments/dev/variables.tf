@@ -28,4 +28,3 @@ variable "account_id" {
   type        = string
   sensitive   = true
 }
-EOF < /dev/null

@@ -12,4 +12,3 @@ output "restricted_security_group_id" {
   description = "ID of the restricted security group"
   value       = aws_security_group.restricted.id
 }
-EOF < /dev/null
