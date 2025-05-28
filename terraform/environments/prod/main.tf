@@ -9,13 +9,14 @@ terraform {
     }
   }
 
-  backend "s3" {
-    bucket         = "financial-infra-terraform-state"
-    key            = "prod/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "financial-infra-terraform-locks"
-    encrypt        = true
-  }
+  # This will be uncommented when setting up remote state
+  # backend "s3" {
+  #   bucket         = "financial-infra-terraform-state"
+  #   key            = "prod/terraform.tfstate"
+  #   region         = "us-east-1"
+  #   dynamodb_table = "financial-infra-terraform-locks"
+  #   encrypt        = true
+  # }
 }
 
 provider "aws" {
@@ -61,66 +62,72 @@ module "networking" {
   environment        = "prod"
   vpc_cidr           = var.vpc_cidr
   availability_zones = var.availability_zones
-  enable_flow_logs   = true
-  enable_nat_gateway = true
-  enable_vpn_gateway = true
+  ha_nat_gateway     = true # Enable HA NAT Gateway for production
 }
 
 # Security Module with enhanced settings for production
 module "security" {
   source = "../../modules/security"
 
-  environment         = "prod"
-  vpc_id              = module.networking.vpc_id
-  vpc_cidr            = module.networking.vpc_cidr
-  enable_guardduty    = true
-  enable_security_hub = true
-  enable_config       = true
-  enable_cloudtrail   = true
-  enable_inspector    = true
-  enable_macie        = true
+  environment = "prod"
+  vpc_id      = module.networking.vpc_id
+  vpc_cidr    = module.networking.vpc_cidr
 }
 
 # Compute Module for production environment
 module "compute" {
   source = "../../modules/compute"
 
-  environment         = "prod"
-  vpc_id              = module.networking.vpc_id
-  private_subnet_ids  = module.networking.private_subnet_ids
-  min_size            = 2
-  max_size            = 10
-  desired_capacity    = 3
-  instance_type       = "t3.large"
-  enable_auto_scaling = true
+  environment          = "prod"
+  vpc_id               = module.networking.vpc_id
+  private_subnet_ids   = module.networking.private_subnet_ids
+  public_subnet_ids    = module.networking.public_subnet_ids
+  db_security_group_id = module.security.restricted_security_group_id
+  ami_id               = "ami-0c02fb55956c7d316" # Amazon Linux 2 AMI (placeholder)
+  db_port              = 5432
+  certificate_arn      = "arn:aws:acm:us-east-1:123456789012:certificate/placeholder" # Placeholder
+  lb_logs_bucket       = "prod-lb-logs-${var.account_id}"
+  region               = var.aws_region
+  account_id           = var.account_id
+  min_size             = 2
+  max_size             = 10
+  desired_capacity     = 3
+  instance_type        = "t3.large"
 }
 
 # Database Module for production environment with Multi-AZ
 module "database" {
   source = "../../modules/database"
 
-  environment                = "prod"
-  vpc_id                     = module.networking.vpc_id
-  private_subnet_ids         = module.networking.private_subnet_ids
-  multi_az                   = true
-  backup_retention_period    = 30
-  backup_window              = "03:00-04:00"
-  maintenance_window         = "sun:04:00-sun:05:00"
-  enable_encryption          = true
-  enable_deletion_protection = true
-  instance_class             = "db.r5.xlarge"
+  environment             = "prod"
+  vpc_id                  = module.networking.vpc_id
+  db_subnet_ids           = module.networking.private_subnet_ids
+  app_security_group_id   = module.security.private_security_group_id
+  db_name                 = "proddb"
+  db_username             = "dbadmin" # Placeholder - use AWS Secrets Manager in production
+  db_password             = "changeme123!" # Placeholder - use AWS Secrets Manager in production
+  sns_topic_arn           = aws_sns_topic.alerts.arn
+  multi_az                = true
+  backup_retention_period = 30
+  backup_window           = "03:00-04:00"
+  maintenance_window      = "sun:04:00-sun:05:00"
+  db_instance_class       = "db.r5.xlarge"
 }
 
 # Monitoring Module with enhanced alerting
 module "monitoring" {
   source = "../../modules/monitoring"
 
-  environment                = "prod"
-  vpc_id                     = module.networking.vpc_id
-  enable_detailed_monitoring = true
-  enable_enhanced_monitoring = true
-  alarm_sns_topic_arns       = [aws_sns_topic.alerts.arn]
-  log_retention_days         = 365
+  environment       = "prod"
+  vpc_id            = module.networking.vpc_id
+  region            = var.aws_region
+  account_id        = var.account_id
+  asg_name          = "prod-app-asg"                      # TODO: Replace with actual ASG name from compute module
+  db_instance_id    = "prod-rds-instance"                 # TODO: Replace with actual RDS instance ID from database module
+  lb_arn_suffix     = "app/prod-alb/1234567890abcdef"     # TODO: Replace with actual ALB ARN suffix from compute module
+  cloudtrail_bucket = "prod-cloudtrail-${var.account_id}"
+  config_bucket     = "prod-config-${var.account_id}"
+  alert_emails      = []                                   # TODO: Add production alert email addresses
 }
 
 # SNS Topic for production alerts
@@ -150,11 +157,11 @@ output "public_subnet_ids" {
 
 output "database_endpoint" {
   description = "RDS instance endpoint"
-  value       = module.database.endpoint
+  value       = module.database.db_instance_endpoint
   sensitive   = true
 }
 
 output "load_balancer_dns" {
   description = "DNS name of the load balancer"
-  value       = module.compute.load_balancer_dns
+  value       = module.compute.lb_dns_name
 }
