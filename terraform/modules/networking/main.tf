@@ -46,7 +46,7 @@ resource "aws_subnet" "private" {
 resource "aws_subnet" "restricted" {
   count                   = length(var.availability_zones)
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index + 2*length(var.availability_zones))
+  cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index + 2 * length(var.availability_zones))
   availability_zone       = var.availability_zones[count.index]
   map_public_ip_on_launch = false
 
@@ -69,8 +69,8 @@ resource "aws_internet_gateway" "main" {
 
 # Elastic IP for NAT Gateway
 resource "aws_eip" "nat" {
-  count = var.ha_nat_gateway ? length(var.availability_zones) : 1
-  vpc   = true
+  count  = var.ha_nat_gateway ? length(var.availability_zones) : 1
+  domain = "vpc"
 
   tags = {
     Name        = "${var.environment}-nat-eip-${count.index + 1}"

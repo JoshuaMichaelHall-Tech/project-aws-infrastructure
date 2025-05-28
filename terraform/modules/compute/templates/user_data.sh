@@ -192,13 +192,13 @@ server.listen(${app_port}, () => {
   
   // Log startup to application log
   fs.appendFileSync('/var/log/application.log', 
-    `[${new Date().toISOString()}] Application started on port ${app_port}\n`);
+    `[$${new Date().toISOString()}] Application started on port ${app_port}\n`);
 });
 
 // Create an application log file if it doesn't exist
 if (!fs.existsSync('/var/log/application.log')) {
   fs.writeFileSync('/var/log/application.log', 
-    `[${new Date().toISOString()}] Application log initialized\n`);
+    `[$${new Date().toISOString()}] Application log initialized\n`);
 }
 EOF
 

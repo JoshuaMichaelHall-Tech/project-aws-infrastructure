@@ -5,7 +5,7 @@ resource "aws_security_group" "app_security_group" {
   name        = "${var.environment}-app-sg"
   description = "Security group for ${var.environment} application tier"
   vpc_id      = var.vpc_id
-  
+
   # Allow inbound traffic from load balancer
   ingress {
     from_port       = var.app_port
@@ -14,7 +14,7 @@ resource "aws_security_group" "app_security_group" {
     security_groups = [var.lb_security_group_id]
     description     = "Allow traffic from load balancer"
   }
-  
+
   # Allow outbound traffic to the database
   egress {
     from_port       = var.db_port
@@ -23,7 +23,7 @@ resource "aws_security_group" "app_security_group" {
     security_groups = [var.db_security_group_id]
     description     = "Allow traffic to database"
   }
-  
+
   # Allow outbound internet access
   egress {
     from_port   = 0
@@ -32,7 +32,7 @@ resource "aws_security_group" "app_security_group" {
     cidr_blocks = ["0.0.0.0/0"]
     description = "Allow outbound internet access for package updates, etc."
   }
-  
+
   tags = {
     Name        = "${var.environment}-app-sg"
     Environment = var.environment
@@ -44,7 +44,7 @@ resource "aws_security_group" "lb_security_group" {
   name        = "${var.environment}-lb-sg"
   description = "Security group for ${var.environment} load balancer"
   vpc_id      = var.vpc_id
-  
+
   # Allow inbound HTTPS traffic from internet
   ingress {
     from_port   = 443
@@ -53,7 +53,7 @@ resource "aws_security_group" "lb_security_group" {
     cidr_blocks = ["0.0.0.0/0"]
     description = "Allow HTTPS traffic from internet"
   }
-  
+
   # Allow outbound traffic to application instances
   egress {
     from_port       = var.app_port
@@ -62,7 +62,7 @@ resource "aws_security_group" "lb_security_group" {
     security_groups = [aws_security_group.app_security_group.id]
     description     = "Allow traffic to application instances"
   }
-  
+
   tags = {
     Name        = "${var.environment}-lb-sg"
     Environment = var.environment
@@ -72,7 +72,7 @@ resource "aws_security_group" "lb_security_group" {
 # IAM role for EC2 instances
 resource "aws_iam_role" "ec2_role" {
   name = "${var.environment}-ec2-role"
-  
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -85,7 +85,7 @@ resource "aws_iam_role" "ec2_role" {
       }
     ]
   })
-  
+
   tags = {
     Name        = "${var.environment}-ec2-role"
     Environment = var.environment
@@ -121,7 +121,7 @@ resource "aws_kms_key" "ebs_encryption_key" {
   description             = "KMS key for EBS volume encryption in ${var.environment}"
   deletion_window_in_days = 30
   enable_key_rotation     = true
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -151,7 +151,7 @@ resource "aws_kms_key" "ebs_encryption_key" {
       }
     ]
   })
-  
+
   tags = {
     Name        = "${var.environment}-ebs-encryption-key"
     Environment = var.environment
@@ -170,14 +170,14 @@ resource "aws_launch_template" "app_launch_template" {
   instance_type          = var.instance_type
   key_name               = var.key_name
   vpc_security_group_ids = [aws_security_group.app_security_group.id]
-  
+
   iam_instance_profile {
     name = aws_iam_instance_profile.ec2_profile.name
   }
-  
+
   block_device_mappings {
     device_name = "/dev/xvda"
-    
+
     ebs {
       volume_size           = 20
       volume_type           = "gp3"
@@ -186,29 +186,29 @@ resource "aws_launch_template" "app_launch_template" {
       kms_key_id            = aws_kms_key.ebs_encryption_key.arn
     }
   }
-  
+
   metadata_options {
     http_endpoint               = "enabled"
-    http_tokens                 = "required"  # IMDSv2 required
+    http_tokens                 = "required" # IMDSv2 required
     http_put_response_hop_limit = 1
     instance_metadata_tags      = "enabled"
   }
-  
+
   user_data = base64encode(templatefile("${path.module}/templates/user_data.sh", {
     environment = var.environment
     app_port    = var.app_port
     region      = var.region
   }))
-  
+
   tag_specifications {
     resource_type = "instance"
-    
+
     tags = {
       Name        = "${var.environment}-app-instance"
       Environment = var.environment
     }
   }
-  
+
   tags = {
     Name        = "${var.environment}-app-launch-template"
     Environment = var.environment
@@ -225,12 +225,12 @@ resource "aws_autoscaling_group" "app_asg" {
   health_check_type         = "ELB"
   vpc_zone_identifier       = var.private_subnet_ids
   target_group_arns         = [aws_lb_target_group.app_tg.arn]
-  
+
   launch_template {
     id      = aws_launch_template.app_launch_template.id
     version = "$Latest"
   }
-  
+
   enabled_metrics = [
     "GroupMinSize",
     "GroupMaxSize",
@@ -241,20 +241,20 @@ resource "aws_autoscaling_group" "app_asg" {
     "GroupTerminatingInstances",
     "GroupTotalInstances"
   ]
-  
+
   instance_refresh {
     strategy = "Rolling"
     preferences {
       min_healthy_percentage = 75
     }
   }
-  
+
   tag {
     key                 = "Name"
     value               = "${var.environment}-app-instance"
     propagate_at_launch = true
   }
-  
+
   tag {
     key                 = "Environment"
     value               = var.environment
@@ -269,16 +269,16 @@ resource "aws_lb" "app_lb" {
   load_balancer_type = "application"
   security_groups    = [aws_security_group.lb_security_group.id]
   subnets            = var.public_subnet_ids
-  
+
   enable_deletion_protection = true
   drop_invalid_header_fields = true
-  
+
   access_logs {
     bucket  = var.lb_logs_bucket
     prefix  = "lb-logs"
     enabled = true
   }
-  
+
   tags = {
     Name        = "${var.environment}-app-lb"
     Environment = var.environment
@@ -291,7 +291,7 @@ resource "aws_lb_target_group" "app_tg" {
   port     = var.app_port
   protocol = "HTTP"
   vpc_id   = var.vpc_id
-  
+
   health_check {
     enabled             = true
     interval            = 30
@@ -302,7 +302,7 @@ resource "aws_lb_target_group" "app_tg" {
     timeout             = 5
     matcher             = "200"
   }
-  
+
   tags = {
     Name        = "${var.environment}-app-tg"
     Environment = var.environment
@@ -314,9 +314,9 @@ resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.app_lb.arn
   port              = 443
   protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"  # TLS 1.2 or higher
+  ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01" # TLS 1.2 or higher
   certificate_arn   = var.certificate_arn
-  
+
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.app_tg.arn
@@ -328,10 +328,10 @@ resource "aws_lb_listener" "http_redirect" {
   load_balancer_arn = aws_lb.app_lb.arn
   port              = 80
   protocol          = "HTTP"
-  
+
   default_action {
     type = "redirect"
-    
+
     redirect {
       port        = "443"
       protocol    = "HTTPS"
@@ -369,7 +369,7 @@ resource "aws_cloudwatch_metric_alarm" "high_cpu" {
   threshold           = "70"
   alarm_description   = "Scale up when CPU exceeds 70%"
   alarm_actions       = [aws_autoscaling_policy.scale_up.arn]
-  
+
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.app_asg.name
   }
@@ -386,7 +386,7 @@ resource "aws_cloudwatch_metric_alarm" "low_cpu" {
   threshold           = "30"
   alarm_description   = "Scale down when CPU is below 30%"
   alarm_actions       = [aws_autoscaling_policy.scale_down.arn]
-  
+
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.app_asg.name
   }
