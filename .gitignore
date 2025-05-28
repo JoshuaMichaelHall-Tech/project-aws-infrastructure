@@ -72,3 +72,7 @@ credentials/
 # Local development
 .local/
 local-config/
+
+# Obsidian workspace files
+.obsidian/
+.obsidian/*
