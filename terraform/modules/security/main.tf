@@ -6,10 +6,10 @@ resource "aws_default_security_group" "default" {
 
   # Disable all inbound and outbound traffic for the default security group
   ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    self        = true
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    self      = true
   }
 
   tags = {
@@ -95,7 +95,7 @@ resource "aws_security_group" "restricted" {
 
   # Allow database traffic only from private subnets
   ingress {
-    from_port       = 5432  # PostgreSQL
+    from_port       = 5432 # PostgreSQL
     to_port         = 5432
     protocol        = "tcp"
     security_groups = [aws_security_group.private.id]

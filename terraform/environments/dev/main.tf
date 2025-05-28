@@ -1,14 +1,14 @@
 # Dev Environment Main Configuration
 terraform {
   required_version = ">= 1.0.0"
-  
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 4.0"
     }
   }
-  
+
   # This will be uncommented when setting up remote state
   # backend "s3" {
   #   bucket         = "financial-infra-terraform-state"
@@ -21,12 +21,12 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
-  
+
   # Enable this for production
   # assume_role {
   #   role_arn = "arn:aws:iam::${var.account_id}:role/TerraformExecutionRole"
   # }
-  
+
   default_tags {
     tags = {
       Environment = "dev"
@@ -39,9 +39,9 @@ provider "aws" {
 # VPC and Network Configuration
 module "networking" {
   source = "../../modules/networking"
-  
-  environment       = "dev"
-  vpc_cidr          = var.vpc_cidr
+
+  environment        = "dev"
+  vpc_cidr           = var.vpc_cidr
   availability_zones = var.availability_zones
   # Additional parameters will go here
 }
@@ -49,9 +49,10 @@ module "networking" {
 # Security Module
 module "security" {
   source = "../../modules/security"
-  
+
   environment = "dev"
   vpc_id      = module.networking.vpc_id
+  vpc_cidr    = module.networking.vpc_cidr
   # Additional parameters will go here
 }
 

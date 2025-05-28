@@ -86,13 +86,13 @@ variable "backup_retention_period" {
 variable "backup_window" {
   description = "Preferred backup window"
   type        = string
-  default     = "03:00-05:00"  # UTC
+  default     = "03:00-05:00" # UTC
 }
 
 variable "maintenance_window" {
   description = "Preferred maintenance window"
   type        = string
-  default     = "sun:06:00-sun:08:00"  # UTC
+  default     = "sun:06:00-sun:08:00" # UTC
 }
 
 variable "sns_topic_arn" {
