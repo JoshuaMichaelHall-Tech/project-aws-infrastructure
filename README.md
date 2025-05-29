@@ -1,6 +1,8 @@
-# Secure Financial Infrastructure as Code with AWS & Terraform (IN DEVELOPMENT)
+# Secure Financial Infrastructure as Code with AWS & Terraform
 
-# IN DEVELOPMENT
+## 🚧 PROJECT STATUS: IN DEVELOPMENT
+
+**Note**: This is an AI-generated project template created as part of my DevOps learning journey. Active development will begin as I progress through my AWS and Terraform certifications.
 
 ## Project Overview
 
